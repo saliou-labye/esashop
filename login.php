@@ -28,7 +28,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     if ($client && password_verify($mot_de_passe, $client['mot_de_passe'])) {
         // C'est un client classique !
         $_SESSION['user_id'] = $client['id'];
-        header('Location: produit.php?id=1'); // Redirection vers la page produit
+        header('Location: index.php'); 
+          
         exit;
     } else {
         // Aucun des deux ne correspond

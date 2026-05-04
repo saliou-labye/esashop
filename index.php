@@ -2,16 +2,24 @@
 include 'db.php';
 include 'header.php';
 
+
 $query = "SELECT * FROM produits";
 $stmt = $pdo->query($query);
-$produits = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+
+
+
+
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
+   
     <style>
         /* Conteneur principal */
         .products-container {
@@ -122,19 +130,18 @@ $produits = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <div class="products-container">
     <h1>Bienvenue sur notre platforme de E-commerce</h1>
     <div class="products">
-        <?php foreach ($produits as $produit): ?>
         
+        <?php while($produit = $stmt->fetch(PDO::FETCH_ASSOC)){?>
             <div class="product">
-                <img src="image<?php echo htmlspecialchars($produit['image']); ?>" alt="<?php echo htmlspecialchars($produit['nom']); ?>">
+                <img src="<?php echo htmlspecialchars($produit['image']); ?>" alt="<?php echo htmlspecialchars($produit['nom']); ?>">
                 <h2><?php echo htmlspecialchars($produit['nom']); ?></h2>
                 <p><?php echo htmlspecialchars($produit['description']); ?></p>
-                <p>Prix : <?php echo htmlspecialchars($produit['prix']); ?> €</p>
-                <a href="product.php?id=<?php echo htmlspecialchars($produit['id']); ?>">Voir le produit</a>
+                <p>Prix : <?php echo htmlspecialchars($produit['prix']); ?> FCFA</p>
+                <a href="produit.php?id=<?php echo htmlspecialchars($produit['id']); ?>">Voir le produit</a> 
             </div>
-        <?php endforeach; ?>
+        <?php } ?>
     
     </div>
- </div>
    
 <?php include 'footer.php'; ?>
 </body>

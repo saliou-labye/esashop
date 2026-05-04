@@ -1,38 +1,48 @@
 
 <?php
+session_start();
 include 'db.php';
-include 'header.php';
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $product_id = $_POST['id'];
-    $Quantity = $_POST['quantity'];
+$client_id = $_SESSION['client_id'] ?? null;
 
-    if (!isset($_SESSION['cart'])) {
-        $_SESSION['cart'] = [];
-    }
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'], $_POST['quantite']) && $idprod) {
+    $idprod = (int) $_POST['id'];
+    $quantite = max(1, (int) $_POST['quantite']);
 
-    if (isset($_SESSION['cart'][$product_id])) {
-        $_SESSION['cart'][$product_id] += $Quantity;
-    } else {
-        $_SESSION['cart'][$product_id] = $Quantity;
-    }
+    $sql = "INSERT INTO panier (idcli, idprod, quantite) 
+            VALUES (:cli, :prod, :qty) 
+            ON DUPLICATE KEY UPDATE quantite = quantite + :qty";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([
+        'cli' => $idcli,
+        'prod' => $idprod,
+        'qty' => $quantite
+    ]);
+
     header('Location: cart.php');
-    exit;
-}
-if (!isset($_SESSION['cart']) || empty($_SESSION['cart'])) {
-    echo '<p>Votre panier est vide.</p>';
-    include 'footer.php';
-    exit;
+    exit();
 }
 
-$cart = $_SESSION['cart'];
-$product_ids = array_keys($cart);
+$produits = [];
+$cart = [];
 
-$query = "SELECT * FROM produits WHERE id IN (" . implode(',', array_fill(0, count($product_ids), '?')) . ")";
-$stmt = $pdo->prepare($query);
-$stmt->execute($product_ids);
-$produits = $stmt->fetchAll(PDO::FETCH_ASSOC);
+if ($client_id) {
+    $sql = "SELECT p.*, pa.quantite FROM produits p
+            JOIN panier pa ON p.id = pa.idprod
+            WHERE pa.idcli = :cli";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute(['cli' => $idcli]);
+    $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    foreach ($items as $item) {
+        $produits[] = $item;
+        $cart[$item['id']] = (int) $item['quantite'];
+    }
+}
+
+include 'header.php';
 ?>
+    
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -79,7 +89,7 @@ $produits = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <div class="cart">
     <?php foreach ($produits as $produit): ?>
         <div class="cart-item">
-            <img src="/images/<?= htmlspecialchars($produit['image']) ?>" alt="<?= htmlspecialchars($produit['nom']) ?>">
+            <img src="<?= htmlspecialchars($produit['image']) ?>" alt="<?= htmlspecialchars($produit['nom']) ?>">
             <h2><?= htmlspecialchars($produit['nom']) ?></h2>
             <p>Prix unitaire : <?= htmlspecialchars($produit['prix']) ?> €</p>
             <p>Quantité : <?= htmlspecialchars($cart[$produit['id']]) ?></p>

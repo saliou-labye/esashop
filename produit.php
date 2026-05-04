@@ -17,7 +17,7 @@ $produit = $stmt->fetch(PDO::FETCH_ASSOC);
 // Redirection si le produit n'existe pas
 if (!$produit) {
     header('Location: index.php');
-    echo "aucun peoduit pour le moment";
+    echo "aucun produit pour le moment";
     exit;
 }
 ?>
@@ -155,25 +155,26 @@ if (!$produit) {
 </head>
 <body>
 <div class="produit-detail-container">
+
     <div class="product-detail">
-        <img src="upload/<?php echo htmlspecialchars($produit['image']); ?>" alt="<?php echo htmlspecialchars($produit['nom']); ?>">
+        <img src="<?php echo htmlspecialchars($produit['image']); ?>" alt="<?php echo htmlspecialchars($produit['nom']); ?>">
         <div class="product-info">
             <h2><?php echo htmlspecialchars($produit['nom']); ?></h2>
             <p><?php echo htmlspecialchars($produit['description']); ?></p>
             <p>Prix : <?php echo htmlspecialchars($produit['prix']); ?> €</p>
-            
+        
             <form action="cart.php" method="post">
                 <input type="hidden" name="id" value="<?php echo htmlspecialchars($produit['id']); ?>">
                 <label for="quantity">Quantité :</label>
                 <input type="number" name="quantity" id="quantity" min="1" value="1">
                 <button type="submit">Ajouter au panier</button>
+                
             </form>
         </div>
     </div>
     <div class="reviews-section">
         <h3>Avis du clients</h3>
         <div class="reviews">
-
     <?php 
         // Logique pour l'affichage des avis à venir...
          $query = 'SELECT a.note, a.commentaire, c.nom, a.date_avis FROM avis a JOIN clients c ON a.client_id = c.id WHERE produit_id = :product_id';
