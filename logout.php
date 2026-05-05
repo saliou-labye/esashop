@@ -1,6 +1,5 @@
 <?php
-session_start();
-session_destroy();
-header('Location: index.php');
+declare(strict_types=1);
+header('Location: index.php?r=logout');
 exit;
-?>
+
