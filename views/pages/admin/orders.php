@@ -1,6 +1,11 @@
 <?php
 /** @var array $orders */
 ?>
+<!--
+  Administration des commandes:
+  - Affiche toutes les commandes
+  - Permet de changer le statut (En attente, Expédiée, Livrée)
+-->
 <div class="d-flex align-items-end justify-content-between mb-3">
   <div>
     <h1 class="page-title mb-1">Admin — Commandes</h1>
@@ -10,6 +15,7 @@
 </div>
 
 <div class="card shadow-sm">
+  <!-- Tableau des commandes -->
   <div class="table-responsive">
     <table class="table align-middle mb-0">
       <thead class="table-light">
@@ -30,6 +36,7 @@
             <td><?= e((string) ($o['nom'] ?? '')) ?></td>
             <td class="text-end fw-semibold"><?= number_format((float) ($o['total'] ?? 0), 0, ',', ' ') ?> FCFA</td>
             <td>
+              <!-- Formulaire de mise à jour du statut -->
               <form class="d-flex gap-2" method="post" action="index.php?r=admin_orders">
                 <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
                 <input type="hidden" name="id" value="<?= (int) $o['id'] ?>">

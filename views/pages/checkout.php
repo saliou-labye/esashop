@@ -6,6 +6,11 @@
 /** @var float $vatRate */
 /** @var string|null $error */
 ?>
+<!--
+  Page de validation de commande (checkout):
+  - Le client confirme son adresse de livraison
+  - La commande est ensuite enregistrée en base
+-->
 <div class="row g-4">
   <div class="col-12 col-lg-7">
     <h1 class="page-title mb-3">Validation de la commande</h1>
@@ -14,7 +19,9 @@
     <?php endif; ?>
     <div class="card shadow-sm">
       <div class="card-body">
+        <!-- Formulaire d'adresse de livraison -->
         <form method="post" action="index.php?r=checkout">
+          <!-- Token CSRF obligatoire en POST -->
           <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
           <div class="mb-3">
             <label class="form-label" for="adresse">Adresse de livraison</label>
@@ -28,6 +35,7 @@
   </div>
 
   <div class="col-12 col-lg-5">
+    <!-- Récapitulatif des produits et du total -->
     <div class="card shadow-sm">
       <div class="card-header bg-white fw-semibold">Récapitulatif</div>
       <div class="card-body">

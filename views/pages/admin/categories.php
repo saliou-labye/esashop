@@ -4,6 +4,12 @@
 /** @var string|null $error */
 /** @var array|null $editCategory */
 ?>
+<!--
+  Administration des catégories:
+  - Formulaire d'ajout
+  - Formulaire de modification
+  - Liste + suppression
+-->
 <div class="d-flex align-items-end justify-content-between mb-3">
   <div>
     <h1 class="page-title mb-1">Admin — Catégories</h1>
@@ -21,6 +27,7 @@
 
 <div class="row g-3">
   <div class="col-12 col-lg-5">
+    <!-- Formulaire: ajouter une catégorie -->
     <div class="card shadow-sm mb-3">
       <div class="card-header bg-white fw-semibold">Ajouter une catégorie</div>
       <div class="card-body">
@@ -41,6 +48,7 @@
     </div>
 
     <div class="card shadow-sm">
+      <!-- Formulaire: modifier une catégorie -->
       <div class="card-header bg-white fw-semibold">Modifier une catégorie</div>
       <div class="card-body">
         <form method="post" action="index.php?r=admin_categories" class="row g-2">
@@ -72,6 +80,7 @@
 
   <div class="col-12 col-lg-7">
     <div class="card shadow-sm">
+      <!-- Tableau des catégories existantes -->
       <div class="card-header bg-white fw-semibold">Liste des catégories</div>
       <div class="table-responsive">
         <table class="table align-middle mb-0">

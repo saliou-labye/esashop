@@ -5,6 +5,12 @@
 /** @var float $total */
 /** @var float $vatRate */
 ?>
+<!--
+  Page panier:
+  - Affiche les produits ajoutés par le client
+  - Permet modifier la quantité / supprimer un article
+  - Affiche les totaux HT, TVA et TTC
+-->
 <div class="d-flex align-items-end justify-content-between mb-3">
   <div>
     <h1 class="page-title mb-1">Votre panier</h1>
@@ -14,8 +20,10 @@
 </div>
 
 <?php if (!$items): ?>
+  <!-- Cas panier vide -->
   <div class="alert alert-info">Votre panier est vide.</div>
 <?php else: ?>
+  <!-- Tableau des articles du panier -->
   <div class="card shadow-sm mb-3">
     <div class="table-responsive">
       <table class="table align-middle mb-0">
@@ -46,6 +54,7 @@
               </td>
               <td class="text-end"><?= number_format((float) $it['prix'], 0, ',', ' ') ?> FCFA</td>
               <td>
+                <!-- Formulaire de mise à jour de quantité -->
                 <form class="d-flex gap-2" method="post" action="index.php?r=cart">
                   <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
                   <input type="hidden" name="id" value="<?= (int) $it['id'] ?>">
@@ -58,6 +67,7 @@
                 <?= number_format(((float) $it['prix']) * ((int) $it['quantite']), 0, ',', ' ') ?> FCFA
               </td>
               <td class="text-end">
+                <!-- Formulaire de suppression d'un article -->
                 <form method="post" action="index.php?r=cart">
                   <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
                   <input type="hidden" name="id" value="<?= (int) $it['id'] ?>">
@@ -74,6 +84,7 @@
 
   <div class="row justify-content-end">
     <div class="col-12 col-lg-5">
+      <!-- Bloc récapitulatif des montants -->
       <div class="card shadow-sm">
         <div class="card-body">
           <div class="d-flex justify-content-between mb-2">

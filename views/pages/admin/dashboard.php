@@ -1,3 +1,9 @@
+<!--
+  Tableau de bord administrateur:
+  - Raccourcis vers la gestion des produits
+  - Raccourcis vers la gestion des catégories
+  - Raccourcis vers la gestion des commandes
+-->
 <div class="d-flex align-items-end justify-content-between mb-3">
   <div>
     <h1 class="page-title mb-1">Administration</h1>

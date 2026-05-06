@@ -1,6 +1,11 @@
 <?php
 /** @var string|null $error */
 ?>
+<!--
+  Page de connexion:
+  - Affiche un message d'erreur si les identifiants sont faux
+  - Envoie le formulaire en POST vers la route login
+-->
 <div class="row justify-content-center">
   <div class="col-12 col-md-7 col-lg-5">
     <h1 class="page-title mb-3">Connexion</h1>
@@ -9,7 +14,9 @@
     <?php endif; ?>
     <div class="card shadow-sm">
       <div class="card-body">
+        <!-- Formulaire de connexion -->
         <form method="post" action="index.php?r=login">
+          <!-- Token CSRF pour sécuriser la requête POST -->
           <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
           <div class="mb-3">
             <label class="form-label" for="email">Email</label>

@@ -4,10 +4,22 @@ declare(strict_types=1);
 
 require __DIR__ . '/config/bootstrap.php';
 
-// Minimal router for TP (MVC simplifié)
+// ---------------------------------------------------------------------
+// ROUTEUR PRINCIPAL
+// ---------------------------------------------------------------------
+// On lit le paramètre ?r=... dans l'URL.
+// Exemple: index.php?r=cart
+// Si rien n'est donné, on affiche la page d'accueil (home).
 $route = $_GET['r'] ?? 'home';
 
-// Helpers
+// ---------------------------------------------------------------------
+// FONCTION D'AFFICHAGE (Vue)
+// ---------------------------------------------------------------------
+// Cette fonction charge toujours:
+// 1) le header
+// 2) la page demandée
+// 3) le footer
+// $data contient les variables envoyées à la vue.
 function view(string $path, array $data = []): void
 {
     extract($data);
@@ -16,12 +28,17 @@ function view(string $path, array $data = []): void
     require __DIR__ . '/views/partials/footer.php';
 }
 
-// Routes
+// ---------------------------------------------------------------------
+// ROUTE: ACCUEIL (liste produits + filtre catégorie)
+// ---------------------------------------------------------------------
 if ($route === 'home') {
     $catId = isset($_GET['cat']) ? (int) $_GET['cat'] : 0;
 
+    // On récupère toutes les catégories pour le menu filtre.
     $categories = $pdo->query('SELECT id, nom FROM categories ORDER BY nom')->fetchAll();
 
+    // Si l'utilisateur choisit une catégorie, on filtre.
+    // Sinon on affiche tous les produits.
     if ($catId > 0) {
         $stmt = $pdo->prepare('SELECT * FROM products WHERE cat_id = :cat ORDER BY id DESC');
         $stmt->execute(['cat' => $catId]);
@@ -34,6 +51,9 @@ if ($route === 'home') {
     exit;
 }
 
+// ---------------------------------------------------------------------
+// ROUTE: DÉTAIL PRODUIT
+// ---------------------------------------------------------------------
 if ($route === 'product') {
     $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
     if ($id <= 0) {
@@ -49,17 +69,25 @@ if ($route === 'product') {
     exit;
 }
 
+// ---------------------------------------------------------------------
+// ROUTE: CONNEXION
+// ---------------------------------------------------------------------
 if ($route === 'login') {
+    // Vérifie le token CSRF sur les requêtes POST (sécurité formulaire).
     csrf_verify();
     $error = null;
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email = trim((string) ($_POST['email'] ?? ''));
         $password = (string) ($_POST['mot_de_passe'] ?? '');
 
+        // On cherche l'utilisateur par email.
         $stmt = $pdo->prepare('SELECT id, password, role FROM users WHERE email = :email');
         $stmt->execute(['email' => $email]);
         $user = $stmt->fetch();
 
+        // Si mot de passe correct:
+        // - admin -> session admin + redirection admin
+        // - client -> session client + accueil
         if ($user && password_verify($password, (string) $user['password'])) {
             if (($user['role'] ?? 'client') === 'admin') {
                 $_SESSION['admin_id'] = (int) $user['id'];
@@ -77,6 +105,9 @@ if ($route === 'login') {
     exit;
 }
 
+// ---------------------------------------------------------------------
+// ROUTE: INSCRIPTION
+// ---------------------------------------------------------------------
 if ($route === 'register') {
     csrf_verify();
     $error = null;
@@ -87,6 +118,7 @@ if ($route === 'register') {
         $adresse = trim((string) ($_POST['adresse'] ?? ''));
         $telephone = trim((string) ($_POST['telephone'] ?? ''));
 
+        // Validations simples côté serveur.
         if ($nom === '' || $email === '' || $password === '' || $adresse === '') {
             $error = "Veuillez remplir tous les champs obligatoires.";
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -95,6 +127,8 @@ if ($route === 'register') {
             $error = "Le mot de passe doit contenir au moins 6 caractères.";
         } else {
             try {
+                // Le mot de passe n'est jamais stocké en clair.
+                // password_hash() crée un hash sécurisé (bcrypt).
                 $hash = password_hash($password, PASSWORD_BCRYPT);
                 $stmt = $pdo->prepare("INSERT INTO users (nom, email, password, role, adresse, telephone) VALUES (:nom, :email, :pwd, 'client', :adr, :tel)");
                 $stmt->execute([
@@ -114,34 +148,44 @@ if ($route === 'register') {
     exit;
 }
 
+// ---------------------------------------------------------------------
+// ROUTE: DÉCONNEXION
+// ---------------------------------------------------------------------
 if ($route === 'logout') {
     session_destroy();
     redirect('index.php');
 }
 
+// ---------------------------------------------------------------------
+// ROUTE: PANIER
+// ---------------------------------------------------------------------
 if ($route === 'cart') {
-    // For now, reuse existing DB cart table when user logged in
+    // Cette page est réservée aux clients connectés.
     $userId = current_user_id();
     if (!$userId) {
         redirect('index.php?r=login');
     }
 
     csrf_verify();
+    // Gestion des actions panier (add / set / remove).
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $productId = (int) ($_POST['id'] ?? 0);
         $qty = max(1, (int) ($_POST['quantite'] ?? 1));
         $action = (string) ($_POST['action'] ?? 'add');
 
         if ($productId > 0) {
+            // On lit le stock du produit pour bloquer les quantités invalides.
             $pstmt = $pdo->prepare('SELECT id, stock FROM products WHERE id = :id');
             $pstmt->execute(['id' => $productId]);
             $product = $pstmt->fetch();
             $availableStock = $product ? (int) ($product['stock'] ?? 0) : 0;
 
             if ($action === 'remove') {
+                // Retirer l'article du panier.
                 $stmt = $pdo->prepare('DELETE FROM cart WHERE user_id = :uid AND product_id = :pid');
                 $stmt->execute(['uid' => $userId, 'pid' => $productId]);
             } elseif ($action === 'set') {
+                // Remplacer la quantité (mise à jour directe).
                 $qty = min($qty, max(0, $availableStock));
                 if ($qty <= 0) {
                     $stmt = $pdo->prepare('DELETE FROM cart WHERE user_id = :uid AND product_id = :pid');
@@ -151,6 +195,7 @@ if ($route === 'cart') {
                 $stmt = $pdo->prepare('UPDATE cart SET quantite = :qty WHERE user_id = :uid AND product_id = :pid');
                 $stmt->execute(['qty' => $qty, 'uid' => $userId, 'pid' => $productId]);
             } else {
+                // Ajouter un produit au panier.
                 if ($availableStock <= 0) {
                     redirect('index.php?r=cart');
                 }
@@ -158,7 +203,7 @@ if ($route === 'cart') {
                 // Note: avec emulate_prepares désactivé, ne pas réutiliser le même nom (:qty) deux fois dans la requête.
                 $stmt = $pdo->prepare('INSERT INTO cart (user_id, product_id, quantite) VALUES (:uid, :pid, :qty) ON DUPLICATE KEY UPDATE quantite = quantite + :qty_add');
                 $stmt->execute(['uid' => $userId, 'pid' => $productId, 'qty' => $qty, 'qty_add' => $qty]);
-                // Cap quantity to stock
+                // Sécurité: on force la quantité panier à ne jamais dépasser le stock.
                 $cap = $pdo->prepare('UPDATE cart c JOIN products p ON p.id = c.product_id SET c.quantite = LEAST(c.quantite, p.stock) WHERE c.user_id = :uid AND c.product_id = :pid');
                 $cap->execute(['uid' => $userId, 'pid' => $productId]);
             }
@@ -166,6 +211,7 @@ if ($route === 'cart') {
         redirect('index.php?r=cart');
     }
 
+    // Lecture du panier + calcul des montants HT/TVA/TTC.
     $stmt = $pdo->prepare('SELECT p.*, c.quantite FROM products p JOIN cart c ON p.id = c.product_id WHERE c.user_id = :uid');
     $stmt->execute(['uid' => $userId]);
     $items = $stmt->fetchAll();
@@ -182,12 +228,16 @@ if ($route === 'cart') {
     exit;
 }
 
+// ---------------------------------------------------------------------
+// ROUTE: CHECKOUT (validation de commande)
+// ---------------------------------------------------------------------
 if ($route === 'checkout') {
     $userId = current_user_id();
     if (!$userId) {
         redirect('index.php?r=login');
     }
 
+    // On recharge les articles du panier avant validation.
     $stmt = $pdo->prepare('SELECT p.*, c.quantite FROM products p JOIN cart c ON p.id = c.product_id WHERE c.user_id = :uid');
     $stmt->execute(['uid' => $userId]);
     $items = $stmt->fetchAll();
@@ -195,6 +245,7 @@ if ($route === 'checkout') {
         redirect('index.php?r=cart');
     }
 
+    // Calcul des totaux.
     $vatRate = (float) ($app['vat_rate'] ?? 0.18);
     $subtotal = 0.0;
     foreach ($items as $it) {
@@ -210,12 +261,16 @@ if ($route === 'checkout') {
         if ($adresse === '') {
             $error = "Adresse de livraison obligatoire.";
         } else {
+            // Transaction: toutes les opérations doivent réussir ensemble,
+            // sinon on annule tout (rollback).
             $pdo->beginTransaction();
             try {
+                // 1) Créer la commande.
                 $stmt = $pdo->prepare("INSERT INTO orders (user_id, statut, adresse, total) VALUES (:user_id, 'En attente', :adr, :total)");
                 $stmt->execute(['user_id' => $userId, 'adr' => $adresse, 'total' => $total]);
                 $orderId = (int) $pdo->lastInsertId();
 
+                // 2) Enregistrer les lignes de commande + mettre à jour stock.
                 $ins = $pdo->prepare('INSERT INTO order_items (order_id, product_id, quantite, prix_unit) VALUES (:oid, :pid, :q, :pu)');
                 $lock = $pdo->prepare('SELECT stock FROM products WHERE id = :id FOR UPDATE');
                 $dec = $pdo->prepare('UPDATE products SET stock = stock - :q WHERE id = :id');
@@ -228,6 +283,7 @@ if ($route === 'checkout') {
                     $row = $lock->fetch();
                     $stock = $row ? (int) ($row['stock'] ?? 0) : 0;
                     if ($q <= 0 || $q > $stock) {
+                        // Si stock insuffisant, on annule toute la commande.
                         throw new RuntimeException('Stock insuffisant.');
                     }
 
@@ -239,10 +295,13 @@ if ($route === 'checkout') {
                     ]);
                     $dec->execute(['q' => $q, 'id' => $pid]);
                 }
+                // 3) Vider le panier.
                 $del->execute(['uid' => $userId]);
+                // 4) Valider définitivement la transaction.
                 $pdo->commit();
                 redirect('index.php?r=confirmation&id=' . $orderId);
             } catch (Throwable $e) {
+                // En cas d'erreur, on annule tout.
                 $pdo->rollBack();
                 $error = "Impossible de valider la commande (stock insuffisant ou erreur).";
             }
@@ -253,12 +312,18 @@ if ($route === 'checkout') {
     exit;
 }
 
+// ---------------------------------------------------------------------
+// ROUTE: CONFIRMATION COMMANDE
+// ---------------------------------------------------------------------
 if ($route === 'confirmation') {
     $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
     view('pages/confirmation.php', compact('app', 'id'));
     exit;
 }
 
+// ---------------------------------------------------------------------
+// ROUTE: HISTORIQUE DES COMMANDES (client connecté)
+// ---------------------------------------------------------------------
 if ($route === 'orders') {
     $userId = current_user_id();
     if (!$userId) {
@@ -271,6 +336,9 @@ if ($route === 'orders') {
     exit;
 }
 
+// ---------------------------------------------------------------------
+// ROUTE: DASHBOARD ADMIN
+// ---------------------------------------------------------------------
 if ($route === 'admin') {
     if (!current_admin_id()) {
         redirect('index.php?r=login');
@@ -279,16 +347,20 @@ if ($route === 'admin') {
     exit;
 }
 
+// ---------------------------------------------------------------------
+// ROUTE: ADMIN CATÉGORIES (CRUD)
+// ---------------------------------------------------------------------
 if ($route === 'admin_categories') {
     if (!current_admin_id()) {
         redirect('index.php?r=login');
     }
 
     csrf_verify();
-    $flash = null;
-    $error = null;
+    $flash = null; // message succès
+    $error = null; // message erreur
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $action = (string) ($_POST['action'] ?? '');
+        // Ajouter une catégorie.
         if ($action === 'add') {
             $nom = trim((string) ($_POST['nom'] ?? ''));
             $description = trim((string) ($_POST['description'] ?? ''));
@@ -306,6 +378,7 @@ if ($route === 'admin_categories') {
                     $error = "Impossible d'ajouter cette catégorie (nom déjà utilisé).";
                 }
             }
+        // Modifier une catégorie.
         } elseif ($action === 'update') {
             $id = (int) ($_POST['id'] ?? 0);
             $nom = trim((string) ($_POST['nom'] ?? ''));
@@ -325,6 +398,7 @@ if ($route === 'admin_categories') {
                     $error = "Impossible de modifier cette catégorie (nom déjà utilisé).";
                 }
             }
+        // Supprimer une catégorie.
         } elseif ($action === 'delete') {
             $id = (int) ($_POST['id'] ?? 0);
             if ($id > 0) {
@@ -339,6 +413,7 @@ if ($route === 'admin_categories') {
         }
     }
 
+    // Préparer la catégorie à éditer dans le formulaire.
     $categories = $pdo->query('SELECT id, nom, description FROM categories ORDER BY nom')->fetchAll();
     $editCategoryId = isset($_GET['edit']) ? (int) $_GET['edit'] : 0;
     $editCategory = null;
@@ -355,6 +430,9 @@ if ($route === 'admin_categories') {
     exit;
 }
 
+// ---------------------------------------------------------------------
+// ROUTE: ADMIN PRODUITS (CRUD + upload image)
+// ---------------------------------------------------------------------
 if ($route === 'admin_products') {
     if (!current_admin_id()) {
         redirect('index.php?r=login');
@@ -362,8 +440,10 @@ if ($route === 'admin_products') {
 
     csrf_verify();
     $flash = null;
+    // POST = action admin (add/update/delete)
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $action = (string) ($_POST['action'] ?? '');
+        // Supprimer un produit.
         if ($action === 'delete') {
             $id = (int) ($_POST['id'] ?? 0);
             if ($id > 0) {
@@ -371,6 +451,7 @@ if ($route === 'admin_products') {
                 $stmt->execute(['id' => $id]);
                 $flash = "Produit supprimé.";
             }
+        // Modifier un produit.
         } elseif ($action === 'update') {
             $id = (int) ($_POST['id'] ?? 0);
             $nom = trim((string) ($_POST['nom'] ?? ''));
@@ -381,6 +462,7 @@ if ($route === 'admin_products') {
 
             if ($id > 0 && $nom !== '' && $categorieId > 0) {
                 $imagePath = (string) ($_POST['existing_image'] ?? '');
+                // Si une nouvelle image est envoyée, on l'upload.
                 if (!empty($_FILES['image']['tmp_name'])) {
                     if (!is_dir(__DIR__ . '/uploads')) {
                         @mkdir(__DIR__ . '/uploads', 0777, true);
@@ -405,6 +487,7 @@ if ($route === 'admin_products') {
                 ]);
                 $flash = "Produit modifié.";
             }
+        // Ajouter un produit.
         } elseif ($action === 'add') {
             $nom = trim((string) ($_POST['nom'] ?? ''));
             $description = trim((string) ($_POST['description'] ?? ''));
@@ -412,6 +495,7 @@ if ($route === 'admin_products') {
             $stock = (int) ($_POST['stock'] ?? 0);
             $categorieId = (int) ($_POST['categorie_id'] ?? 0);
 
+            // Upload image (facultatif).
             $imagePath = null;
             if (!empty($_FILES['image']['tmp_name'])) {
                 if (!is_dir(__DIR__ . '/uploads')) {
@@ -438,6 +522,7 @@ if ($route === 'admin_products') {
         }
     }
 
+    // Préparer le produit à éditer dans le formulaire.
     $products = $pdo->query('SELECT * FROM products ORDER BY id DESC')->fetchAll();
     $categories = $pdo->query('SELECT id, nom FROM categories ORDER BY nom')->fetchAll();
     $editProductId = isset($_GET['edit']) ? (int) $_GET['edit'] : 0;
@@ -455,15 +540,20 @@ if ($route === 'admin_products') {
     exit;
 }
 
+// ---------------------------------------------------------------------
+// ROUTE: ADMIN COMMANDES (changer statut)
+// ---------------------------------------------------------------------
 if ($route === 'admin_orders') {
     if (!current_admin_id()) {
         redirect('index.php?r=login');
     }
 
     csrf_verify();
+    // POST = mise à jour du statut d'une commande.
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $id = (int) ($_POST['id'] ?? 0);
         $statut = (string) ($_POST['statut'] ?? 'En attente');
+        // On autorise uniquement ces statuts.
         $allowedStatus = ['En attente', 'Expédiée', 'Livrée'];
         if ($id > 0 && in_array($statut, $allowedStatus, true)) {
             $stmt = $pdo->prepare('UPDATE orders SET statut = :s WHERE id = :id');
@@ -472,6 +562,7 @@ if ($route === 'admin_orders') {
         redirect('index.php?r=admin_orders');
     }
 
+    // Liste complète des commandes avec nom du client.
     $query = "SELECT o.id, o.created_at as date_commande, o.statut, u.nom,
               o.total as total
               FROM orders o
@@ -482,5 +573,7 @@ if ($route === 'admin_orders') {
     exit;
 }
 
-// fallback
+// ---------------------------------------------------------------------
+// FALLBACK: route inconnue => retour accueil
+// ---------------------------------------------------------------------
 redirect('index.php');

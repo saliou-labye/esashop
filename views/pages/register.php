@@ -1,6 +1,11 @@
 <?php
 /** @var string|null $error */
 ?>
+<!--
+  Page d'inscription client:
+  - Saisie des informations utilisateur
+  - Envoi vers la route register (POST)
+-->
 <div class="row justify-content-center">
   <div class="col-12 col-md-8 col-lg-6">
     <h1 class="page-title mb-3">Inscription</h1>
@@ -9,7 +14,9 @@
     <?php endif; ?>
     <div class="card shadow-sm">
       <div class="card-body">
+        <!-- Formulaire de création de compte -->
         <form method="post" action="index.php?r=register">
+          <!-- Token CSRF pour éviter les soumissions malveillantes -->
           <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
           <div class="mb-3">
             <label class="form-label" for="nom">Nom</label>

@@ -4,6 +4,12 @@
 /** @var string|null $flash */
 /** @var array|null $editProduct */
 ?>
+<!--
+  Administration des produits:
+  - Formulaire d'ajout
+  - Formulaire de modification
+  - Liste + suppression
+-->
 <div class="d-flex align-items-end justify-content-between mb-3">
   <div>
     <h1 class="page-title mb-1">Admin — Produits</h1>
@@ -18,6 +24,7 @@
 
 <div class="row g-3">
   <div class="col-12 col-lg-5">
+    <!-- Formulaire: ajouter un produit -->
     <div class="card shadow-sm">
       <div class="card-header bg-white fw-semibold">Ajouter un produit</div>
       <div class="card-body">
@@ -61,6 +68,7 @@
   </div>
 
   <div class="col-12 col-lg-7">
+    <!-- Formulaire: modifier un produit existant -->
     <div class="card shadow-sm mb-3">
       <div class="card-header bg-white fw-semibold">Modifier un produit</div>
       <div class="card-body">
@@ -113,6 +121,7 @@
     </div>
 
     <div class="card shadow-sm">
+      <!-- Tableau des produits existants -->
       <div class="card-header bg-white fw-semibold">Liste des produits</div>
       <div class="table-responsive">
         <table class="table align-middle mb-0">
