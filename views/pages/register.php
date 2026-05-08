@@ -15,7 +15,7 @@
     <div class="card shadow-sm">
       <div class="card-body">
         <!-- Formulaire de création de compte -->
-        <form method="post" action="index.php?r=register">
+        <form method="post" action="index.php?r=register" class="cardo";>
           <!-- Token CSRF pour éviter les soumissions malveillantes -->
           <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
           <div class="mb-3">

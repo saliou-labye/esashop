@@ -13,7 +13,6 @@
 * {
   box-sizing: border-box;
 }
-
 html {
   height: 100%;
 }
@@ -177,6 +176,7 @@ a:hover {
   font-weight: 800;
   color: var(--brand);
   margin-top: 0;
+  margin-left: 450px;
 }
 
 .card {
@@ -184,6 +184,8 @@ a:hover {
   border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
+  margin-left: 300px;
+  width: 500px;
 }
 
 .card-body, .card-header {
